@@ -4,6 +4,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getEpisodeBySlug } from '@/lib/data';
 import { createR2Client, r2BucketName } from '@/lib/r2';
 
+export const runtime = 'edge';
+
 /**
  * Resolves /api/audio/[slug] → the episode's audio, without ever
  * exposing the R2 object key, bucket name, or credentials to the client
