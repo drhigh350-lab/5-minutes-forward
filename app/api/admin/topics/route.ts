@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listTopics, createTopic } from '@/lib/adminData';
 
+export const runtime = 'edge';
+
 export async function GET() {
   try {
     const topics = await listTopics();
