@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { getEpisodeAdmin } from '@/lib/adminData';
 import { EpisodeForm } from '@/components/admin/EpisodeForm';
 
+export const runtime = 'edge';
+
 // Next.js 15: page params are a Promise and must be awaited.
 export default async function EditEpisodePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

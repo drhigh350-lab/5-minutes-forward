@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateGrouping, GroupingInput } from '@/lib/adminData';
 
+export const runtime = 'edge';
+
 // Next.js 15: route handler params are a Promise and must be awaited.
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

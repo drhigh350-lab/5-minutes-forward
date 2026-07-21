@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getStatsOverviewAdmin } from '@/lib/adminData';
 
+export const runtime = 'edge';
+
 export async function GET() {
   try {
     const stats = await getStatsOverviewAdmin();

@@ -7,6 +7,8 @@ import { ShareButton } from '@/components/ShareButton';
 import { WhatsAppFollow } from '@/components/LowerSections';
 import { Header } from '@/components/Header';
 
+export const runtime = 'edge';
+
 // Next.js 15: params/searchParams are Promises in the App Router and
 // must be awaited — this was written against the pre-15 sync convention
 // and would fail to build. Fixed here.
@@ -77,4 +79,4 @@ export default async function EpisodePage({ params, searchParams }: EpisodePageP
       </main>
     </div>
   );
-}
+    }
