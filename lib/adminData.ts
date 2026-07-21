@@ -275,19 +275,52 @@ export async function listFeedbackAdmin(episodeId?: string) {
 /** Admin-side raw stats read (spec §10.5) — the ONLY place these numbers are ever exposed; never via a public route. */
 export async function getStatsOverviewAdmin() {
   const supabase = createAdminClient();
-  const [{ data: episodeStats, error: eError }, { data: groupingStats, error: gError }] = await Promise.all([
-    supabase
-      .from('episode_stats')
-      .select('episode_id, play_count, completion_count, completion_rate, avg_listen_seconds, share_count, is_popular')
-      .order('play_count', { ascending: false })
-      .limit(50),
-    supabase
-      .from('grouping_stats')
-      .select('grouping_id, play_count, completion_count, completion_rate, avg_listen_seconds, share_count, is_popular')
-      .order('play_count', { ascending: false })
-      .limit(50),
-  ]);
+
+  const [{ data: episodeStats, error: eError }, { data: groupingStats, error: gError }] =
+    await Promise.all([
+      supabase
+        .from('episode_stats')
+        .select(`
+          episode_id,
+          play_count,
+          completion_count,
+          completion_rate,
+          avg_listen_seconds,
+          share_count,
+          is_popular,
+          episode:episode_id (
+            episode_number,
+            title,
+            slug
+          )
+        `)
+        .order('play_count', { ascending: false })
+        .limit(50),
+
+      supabase
+        .from('grouping_stats')
+        .select(`
+          grouping_id,
+          play_count,
+          completion_count,
+          completion_rate,
+          avg_listen_seconds,
+          share_count,
+          is_popular,
+          grouping:grouping_id (
+            title,
+            slug
+          )
+        `)
+        .order('play_count', { ascending: false })
+        .limit(50),
+    ]);
+
   if (eError) throw eError;
   if (gError) throw gError;
-  return { episodeStats: episodeStats ?? [], groupingStats: groupingStats ?? [] };
+
+  return {
+    episodeStats: episodeStats ?? [],
+    groupingStats: groupingStats ?? [],
+  };
 }

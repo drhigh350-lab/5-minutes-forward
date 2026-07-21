@@ -10,7 +10,13 @@ interface EpisodeStat {
   avg_listen_seconds: number;
   share_count: number;
   is_popular: boolean;
+  episode: {
+    episode_number: number;
+    title: string;
+    slug: string;
+  } | null;
 }
+
 interface GroupingStat {
   grouping_id: string;
   play_count: number;
@@ -19,6 +25,10 @@ interface GroupingStat {
   avg_listen_seconds: number;
   share_count: number;
   is_popular: boolean;
+  grouping: {
+    title: string;
+    slug: string;
+  } | null;
 }
 
 export default function StatsPage() {
@@ -49,31 +59,46 @@ export default function StatsPage() {
       <StatsTable
         rows={episodeStats}
         idKey="episode_id"
+        type="episode"  
       />
 
       <h2 className="font-display text-lg text-ink mt-8 mb-3">Groupings</h2>
       <StatsTable
         rows={groupingStats}
         idKey="grouping_id"
+        type="grouping"
       />
     </div>
   );
 }
 
-function StatsTable<K extends string, T extends { play_count: number; completion_rate: number; avg_listen_seconds: number; share_count: number; is_popular: boolean } & Record<K, string>>({
+function StatsTable<
+  K extends string,
+  T extends {
+    play_count: number;
+    completion_rate: number;
+    avg_listen_seconds: number;
+    share_count: number;
+    is_popular: boolean;
+  } & Record<K, string>
+>({
   rows,
   idKey,
+  type,
 }: {
   rows: T[];
   idKey: K;
+  type: 'episode' | 'grouping';
 }) {
-  if (rows.length === 0) return <p className="text-sm text-muted">No data yet.</p>;
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted">No data yet.</p>;
+  }
 
   return (
     <table className="w-full text-sm">
       <thead>
         <tr className="text-left text-xs font-mono uppercase text-muted border-b border-line">
-          <th className="pb-2">ID</th>
+          <th className="pb-2">Content</th>
           <th className="pb-2">Plays</th>
           <th className="pb-2">Completion</th>
           <th className="pb-2">Avg listen (s)</th>
@@ -81,17 +106,87 @@ function StatsTable<K extends string, T extends { play_count: number; completion
           <th className="pb-2">Popular</th>
         </tr>
       </thead>
+
       <tbody>
-        {rows.map((row) => (
-          <tr key={String(row[idKey])} className="border-b border-line">
-            <td className="py-2 font-mono text-muted">{String(row[idKey]).slice(0, 8)}</td>
-            <td className="py-2">{row.play_count}</td>
-            <td className="py-2">{(row.completion_rate * 100).toFixed(0)}%</td>
-            <td className="py-2">{Math.round(row.avg_listen_seconds)}</td>
-            <td className="py-2">{row.share_count}</td>
-            <td className="py-2">{row.is_popular ? '🔥' : ''}</td>
-          </tr>
-        ))}
+
+{rows.map((row) => {
+  return (
+
+            <tr key={String(row[idKey])} className="border-b border-line">
+<td className="py-3">
+  {type === 'episode' ? (
+    (() => {
+      const episode = (row as T & {
+        episode: {
+          episode_number: number;
+          title: string;
+          slug: string;
+        } | null;
+      }).episode;
+
+      return episode ? (
+        <div>
+          <div className="font-medium text-ink">
+            Episode {episode.episode_number}
+          </div>
+          <div className="text-muted">
+            {episode.title}
+          </div>
+        </div>
+      ) : (
+        <span className="font-mono text-muted">
+          {String(row[idKey]).slice(0, 8)}
+        </span>
+      );
+    })()
+  ) : (
+    (() => {
+      const grouping = (row as T & {
+        grouping: {
+          title: string;
+          slug: string;
+        } | null;
+      }).grouping;
+
+      return grouping ? (
+        <div>
+          <div className="font-medium text-ink">
+            {grouping.title}
+          </div>
+          <div className="text-muted">
+            /{grouping.slug}
+          </div>
+        </div>
+      ) : (
+        <span className="font-mono text-muted">
+          {String(row[idKey]).slice(0, 8)}
+        </span>
+      );
+    })()
+  )}
+</td>
+              <td className="py-3">
+                {row.play_count}
+              </td>
+
+              <td className="py-3">
+                {(row.completion_rate * 100).toFixed(0)}%
+              </td>
+
+              <td className="py-3">
+                {Math.round(row.avg_listen_seconds)}
+              </td>
+
+              <td className="py-3">
+                {row.share_count}
+              </td>
+
+              <td className="py-3">
+                {row.is_popular ? '🔥' : ''}
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
