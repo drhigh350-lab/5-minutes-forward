@@ -11,6 +11,8 @@ import {
   getSiteSettings,
 } from '@/lib/data';
 
+export const dynamic='force-dynamic';
+
 export default async function HomePage() {
   const [latestEpisode, featured, recentEpisodes, exploreTeaser, siteSettings] = await Promise.all([
     getLatestEpisode(),
