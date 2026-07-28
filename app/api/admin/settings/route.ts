@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSiteSettingsAdmin, updateSiteSettingsAdmin } from '@/lib/adminData';
 
-export const runtime = 'edge';
 
 export async function GET() {
   try {
