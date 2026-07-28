@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listEpisodesAdmin, createEpisode, getNextEpisodeNumber, EpisodeInput } from '@/lib/adminData';
 
-export const runtime = 'edge';
 
 export async function GET() {
   try {
@@ -25,4 +24,4 @@ export async function POST(req: NextRequest) {
 
 function message(err: unknown) {
   return err instanceof Error ? err.message : 'Unknown error';
-                             }
+}
