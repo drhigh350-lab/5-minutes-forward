@@ -3,17 +3,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createR2Client, r2BucketName } from '@/lib/r2';
 
-export const runtime = 'edge';
 
-/**
- * Issues a short-lived presigned PUT URL so the CMS can upload an audio
- * file directly to R2 from the browser (bypassing the Next.js server —
- * avoids routing potentially large files through a serverless function).
- *
- * Flow: CMS calls this route with a desired filename → gets back
- * { uploadUrl, objectKey } → PUTs the file directly to `uploadUrl` →
- * saves `objectKey` as the episode's audio_object_key.
- */
 export async function POST(req: NextRequest) {
   try {
     const { filename, contentType } = await req.json();
