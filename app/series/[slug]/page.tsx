@@ -6,7 +6,6 @@ import { ShareButton } from '@/components/ShareButton';
 import { GroupingDetailClient } from '@/components/GroupingDetailClient';
 import { getGroupingBySlug } from '@/lib/data';
 
-export const runtime = 'edge';
 
 // Next.js 15: page params are a Promise and must be awaited.
 interface GroupingPageProps {
