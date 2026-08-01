@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'Every 5 Minutes Forward episode, newest first.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function EpisodesPage() {
   const episodes = await getAllEpisodes();
 

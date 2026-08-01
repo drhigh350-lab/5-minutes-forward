@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: 'Sequential series and topical collections on 5 Minutes Forward.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function SeriesPage() {
   const groupings = await getAllGroupings();
   const series = groupings.filter((g) => g.type === 'series');

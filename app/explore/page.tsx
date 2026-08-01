@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'What listeners are engaging with most on 5 Minutes Forward.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function ExplorePage() {
   const [episodes, groupings] = await Promise.all([getPopularEpisodes(), getPopularGroupings()]);
   const isEmpty = episodes.length === 0 && groupings.length === 0;

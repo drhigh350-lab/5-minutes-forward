@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: 'A community of people building the five-minute habit together.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function CollectivePage() {
   const siteSettings = await getSiteSettings();
 
