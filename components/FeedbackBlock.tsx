@@ -39,14 +39,18 @@ export function FeedbackBlock({ episodeId }: FeedbackBlockProps) {
   const [messageState, setMessageState] = useState<SaveState>('idle');
 
   async function insertFeedback(reaction: string | null, msg: string | null) {
-    const supabase = createPublicClient();
-    const { error } = await supabase.from('feedback').insert({
-      episode_id: episodeId,
-      reaction,
-      message: msg,
-      anonymous: true,
-    });
-    return error;
+    try {
+      const supabase = createPublicClient();
+      const { error } = await supabase.from('feedback').insert({
+        episode_id: episodeId,
+        reaction,
+        message: msg,
+        anonymous: true,
+      });
+      return error;
+    } catch (err) {
+      return err instanceof Error ? err : new Error(String(err));
+    }
   }
 
   async function handleReactionTap(emoji: string) {
