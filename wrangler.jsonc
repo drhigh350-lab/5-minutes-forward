@@ -9,6 +9,10 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "vars": {
+    "R2_ACCOUNT_ID": "9be63ef0c7af5dfac1e81e84fff0b08f",
+    "R2_BUCKET_NAME": "techmed-audio"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
