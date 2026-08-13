@@ -3,6 +3,7 @@ import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { PlayerProvider } from '@/context/PlayerContext';
 import { MiniPlayer } from '@/components/MiniPlayer';
+import { JsonLd } from '@/components/JsonLd';
 
 // Display serif — used with restraint, headlines and episode titles only.
 const fraunces = Fraunces({
@@ -36,6 +37,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: SITE_URL,
+  },
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
@@ -52,10 +56,24 @@ export const metadata: Metadata = {
   },
 };
 
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'PodcastSeries',
+  name: SITE_TITLE,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  image: `${SITE_URL}/logo.png`,
+  publisher: {
+    '@type': 'Organization',
+    name: 'TECHMED',
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
       <body>
+        <JsonLd data={siteJsonLd} />
         <PlayerProvider>
           {/* pb-24 keeps the fixed MiniPlayer from covering page content, with
               extra clearance now that the title can wrap to two lines */}

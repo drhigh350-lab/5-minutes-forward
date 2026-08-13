@@ -6,6 +6,10 @@ import { FeedbackBlock } from '@/components/FeedbackBlock';
 import { ShareButton } from '@/components/ShareButton';
 import { WhatsAppFollow } from '@/components/LowerSections';
 import { Header } from '@/components/Header';
+import { JsonLd } from '@/components/JsonLd';
+import { formatIsoDuration } from '@/lib/formatters';
+
+const SITE_URL = 'https://forward.techmedng.com';
 
 
 // Next.js 15: params/searchParams are Promises in the App Router and
@@ -23,12 +27,15 @@ export async function generateMetadata({ params }: EpisodePageProps) {
 
   const title = `${episode.title} — 5 Minutes Forward`;
   const description = episode.description || episode.quote || undefined;
-  const url = `https://forward.techmedng.com/${episode.slug}`;
+  const url = `${SITE_URL}/${episode.slug}`;
   const image = episode.artworkUrl || '/logo.png';
 
   return {
     title,
     description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
       title,
       description,
@@ -58,11 +65,33 @@ export default async function EpisodePage({ params, searchParams }: EpisodePageP
     getSiteSettings(),
   ]);
 
-  const episodeUrl = `https://forward.techmedng.com/${episode.slug}`;
+  const episodeUrl = `${SITE_URL}/${episode.slug}`;
   const primaryGrouping = groupings[0]; // an episode can belong to several; show the first as the pointer
+
+  const episodeJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'PodcastEpisode',
+    name: episode.title,
+    description: episode.description || episode.quote || undefined,
+    url: episodeUrl,
+    datePublished: episode.publishedAt,
+    duration: formatIsoDuration(episode.durationSeconds),
+    image: episode.artworkUrl || `${SITE_URL}/logo.png`,
+    associatedMedia: {
+      '@type': 'AudioObject',
+      contentUrl: `${SITE_URL}/api/audio/${episode.slug}`,
+      encodingFormat: 'audio/mpeg',
+    },
+    partOfSeries: {
+      '@type': 'PodcastSeries',
+      name: '5 Minutes Forward',
+      url: SITE_URL,
+    },
+  };
 
   return (
     <div className="mx-auto max-w-content px-5">
+      <JsonLd data={episodeJsonLd} />
       <Header />
 
       <main>

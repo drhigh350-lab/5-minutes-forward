@@ -4,7 +4,10 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/LowerSections';
 import { ShareButton } from '@/components/ShareButton';
 import { GroupingDetailClient } from '@/components/GroupingDetailClient';
+import { JsonLd } from '@/components/JsonLd';
 import { getGroupingBySlug } from '@/lib/data';
+
+const SITE_URL = 'https://forward.techmedng.com';
 
 
 // Next.js 15: page params are a Promise and must be awaited.
@@ -20,12 +23,15 @@ export async function generateMetadata({ params }: GroupingPageProps): Promise<M
   const { grouping } = result;
   const title = `${grouping.title} — 5 Minutes Forward`;
   const description = grouping.description || undefined;
-  const url = `https://forward.techmedng.com/series/${grouping.slug}`;
+  const url = `${SITE_URL}/series/${grouping.slug}`;
   const image = grouping.artworkUrl || '/logo.png';
 
   return {
     title,
     description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
       title,
       description,
@@ -49,11 +55,27 @@ export default async function GroupingDetailPage({ params }: GroupingPageProps) 
   if (!result) notFound();
 
   const { grouping, episodes } = result;
-  const groupingUrl = `https://forward.techmedng.com/series/${grouping.slug}`;
+  const groupingUrl = `${SITE_URL}/series/${grouping.slug}`;
   const label = grouping.type === 'series' ? 'Series' : 'Collection';
+
+  const groupingJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: grouping.title,
+    description: grouping.description || undefined,
+    url: groupingUrl,
+    numberOfItems: episodes.length,
+    itemListElement: episodes.map((ep, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${SITE_URL}/${ep.slug}`,
+      name: ep.title,
+    })),
+  };
 
   return (
     <div className="mx-auto max-w-content px-5">
+      {episodes.length > 0 && <JsonLd data={groupingJsonLd} />}
       <Header />
       <main>
         <section className="pt-4 pb-6">

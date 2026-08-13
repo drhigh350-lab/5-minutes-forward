@@ -7,6 +7,9 @@ import { getAllGroupings } from '@/lib/data';
 export const metadata: Metadata = {
   title: 'Series & Collections — 5 Minutes Forward',
   description: 'Sequential series and topical collections on 5 Minutes Forward.',
+  alternates: {
+    canonical: 'https://forward.techmedng.com/series',
+  },
 };
 
 export const dynamic = 'force-dynamic';

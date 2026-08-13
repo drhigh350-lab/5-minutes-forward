@@ -8,6 +8,9 @@ import { formatDuration } from '@/lib/formatters';
 export const metadata: Metadata = {
   title: 'Explore — 5 Minutes Forward',
   description: 'What listeners are engaging with most on 5 Minutes Forward.',
+  alternates: {
+    canonical: 'https://forward.techmedng.com/explore',
+  },
 };
 
 export const dynamic = 'force-dynamic';

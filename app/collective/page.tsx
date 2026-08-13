@@ -6,6 +6,9 @@ import { getSiteSettings } from '@/lib/data';
 export const metadata: Metadata = {
   title: 'Forward Collective — 5 Minutes Forward',
   description: 'A community of people building the five-minute habit together.',
+  alternates: {
+    canonical: 'https://forward.techmedng.com/collective',
+  },
 };
 
 export const dynamic = 'force-dynamic';

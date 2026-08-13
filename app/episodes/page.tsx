@@ -8,6 +8,9 @@ import { formatDuration } from '@/lib/formatters';
 export const metadata: Metadata = {
   title: 'All Episodes — 5 Minutes Forward',
   description: 'Every 5 Minutes Forward episode, newest first.',
+  alternates: {
+    canonical: 'https://forward.techmedng.com/episodes',
+  },
 };
 
 export const dynamic = 'force-dynamic';

@@ -33,3 +33,24 @@ export function formatDuration(seconds: number | null | undefined): string {
   }
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
+
+/**
+ * ISO 8601 duration (e.g. "PT5M30S") — the format schema.org's
+ * CreativeWork.duration expects for PodcastEpisode JSON-LD.
+ */
+export function formatIsoDuration(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined || Number.isNaN(seconds) || !Number.isFinite(seconds) || seconds <= 0) {
+    return 'PT0S';
+  }
+
+  const totalSeconds = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  let result = 'PT';
+  if (hours > 0) result += `${hours}H`;
+  if (minutes > 0) result += `${minutes}M`;
+  if (secs > 0 || result === 'PT') result += `${secs}S`;
+  return result;
+}
