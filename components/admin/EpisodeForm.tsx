@@ -62,6 +62,7 @@ export function EpisodeForm({ mode, episodeId, initial }: EpisodeFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishedResult, setPublishedResult] = useState<{ slug: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/groupings')
@@ -230,6 +231,30 @@ if (!putRes.ok) {
     }
   }
 
+  async function handleDelete() {
+    if (!episodeId) return;
+    const confirmed = window.confirm(
+      `Delete "${form.title || 'this episode'}"? This permanently removes it${
+        form.status === 'published' ? ' — including from the live site' : ''
+      }, along with any feedback and stats tied to it. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/episodes/${episodeId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Delete failed');
+      }
+      router.push('/admin/episodes');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      setDeleting(false);
+    }
+  }
+
   if (publishedResult) {
     return <PublishConfirmation episodeNumber={form.episodeNumber} slug={publishedResult.slug} title={publishedResult.title} />;
   }
@@ -358,6 +383,20 @@ if (!putRes.ok) {
           Publish
         </button>
       </div>
+
+      {mode === 'edit' && (
+        <div className="mt-4 pt-4 border-t border-line">
+          <p className="text-xs font-mono uppercase tracking-wide text-muted mb-2">Danger zone</p>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={handleDelete}
+            className="text-sm font-medium text-red-600 border border-red-200 rounded-full px-4 py-2 hover:bg-red-50 disabled:opacity-40"
+          >
+            {deleting ? 'Deleting…' : 'Delete episode'}
+          </button>
+        </div>
+      )}
 
       <style jsx>{`
         .input {

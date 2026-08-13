@@ -16,6 +16,7 @@ interface EpisodeListItem {
 export default function EpisodesListPage() {
   const [episodes, setEpisodes] = useState<EpisodeListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/episodes')
@@ -23,6 +24,25 @@ export default function EpisodesListPage() {
       .then((d) => setEpisodes(d.episodes ?? []))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete(ep: EpisodeListItem) {
+    if (!window.confirm(`Delete "${ep.title}"? This permanently removes the episode, including any feedback and stats tied to it — this cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(ep.id);
+    try {
+      const res = await fetch(`/api/admin/episodes/${ep.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Delete failed');
+      }
+      setEpisodes((prev) => prev.filter((e) => e.id !== ep.id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div>
@@ -48,18 +68,19 @@ export default function EpisodesListPage() {
               <th className="pb-2">Title</th>
               <th className="pb-2">Status</th>
               <th className="pb-2">Featured</th>
+              <th className="pb-2"></th>
             </tr>
           </thead>
           <tbody>
             {episodes.map((ep) => (
               <tr key={ep.id} className="border-b border-line">
-                <td className="py-2 font-mono text-muted">{ep.episode_number}</td>
-                <td className="py-2">
+                <td className="py-2 font-mono text-muted align-top">{ep.episode_number}</td>
+                <td className="py-2 align-top">
                   <Link href={`/admin/episodes/${ep.id}`} className="text-ink hover:underline">
                     {ep.title}
                   </Link>
                 </td>
-                <td className="py-2">
+                <td className="py-2 align-top">
                   <span
                     className={
                       ep.status === 'published' ? 'text-green-700' : 'text-muted'
@@ -68,7 +89,17 @@ export default function EpisodesListPage() {
                     {ep.status}
                   </span>
                 </td>
-                <td className="py-2 text-muted">{ep.featured ? '★' : ''}</td>
+                <td className="py-2 text-muted align-top">{ep.featured ? '★' : ''}</td>
+                <td className="py-2 align-top text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(ep)}
+                    disabled={deletingId === ep.id}
+                    className="text-xs text-red-600 hover:underline disabled:opacity-40"
+                  >
+                    {deletingId === ep.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

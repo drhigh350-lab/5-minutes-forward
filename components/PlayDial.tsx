@@ -95,9 +95,8 @@ export function PlayDial({
             <rect x="14" y="4" width="5" height="16" fill="#F7F7F5" />
           </svg>
         ) : (
-          // Play triangle, nudged 1px right to look optically centered
-          <svg width={size * 0.28} height={size * 0.28} viewBox="0 0 24 24" className="ml-[3px]">
-            <path d="M6 4L20 12L6 20V4Z" fill="#F7F7F5" />
+          <svg width={size * 0.28} height={size * 0.28} viewBox="0 0 24 24">
+            <path d="M7 4L19 12L7 20V4Z" fill="#F7F7F5" />
           </svg>
         )}
       </span>

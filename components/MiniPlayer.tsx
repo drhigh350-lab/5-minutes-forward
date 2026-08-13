@@ -67,69 +67,71 @@ export function MiniPlayer() {
           <p className="font-mono text-[10px] tracking-wide uppercase text-muted">
             Day {episode.episodeNumber}
           </p>
-          <p className="text-sm text-ink truncate leading-tight">
+          <p className="text-sm text-ink leading-tight truncate sm:whitespace-normal sm:break-words sm:line-clamp-2">
             {isError ? 'Couldn\u2019t play \u2014 tap to retry' : episode.title}
           </p>
         </Link>
 
-        <span className="font-mono text-xs text-muted hidden sm:inline shrink-0">
+        <span className="font-mono text-xs text-muted hidden md:inline shrink-0">
           {formatDuration(currentTime)} / {formatDuration(duration)}
         </span>
 
-        <button
-          type="button"
-          onClick={() => player.skip(-10)}
-          aria-label="Back 10 seconds"
-          className="w-8 h-8 shrink-0 flex items-center justify-center text-ink"
-        >
-          <SkipIcon direction="back" />
-        </button>
-        <button
-          type="button"
-          onClick={() => player.skip(10)}
-          aria-label="Forward 10 seconds"
-          className="w-8 h-8 shrink-0 flex items-center justify-center text-ink"
-        >
-          <SkipIcon direction="forward" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowRates((s) => !s)}
+              className="font-mono text-xs text-muted p-2 flex items-center justify-center rounded hover:bg-navy-tint"
+            >
+              {playbackRate}x
+            </button>
+            {showRates && (
+              <div className="absolute bottom-full mb-1 right-0 bg-surface border border-line rounded shadow-sm overflow-hidden">
+                {PLAYBACK_RATES.map((rate) => (
+                  <button
+                    key={rate}
+                    type="button"
+                    onClick={() => {
+                      player.setPlaybackRate(rate);
+                      setShowRates(false);
+                    }}
+                    className={`block w-full px-3 py-1.5 text-xs font-mono text-left hover:bg-navy-tint ${
+                      rate === playbackRate ? 'text-ink font-medium' : 'text-muted'
+                    }`}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <div className="relative shrink-0">
           <button
             type="button"
-            onClick={() => setShowRates((s) => !s)}
-            className="font-mono text-xs text-muted w-9 h-8 flex items-center justify-center rounded hover:bg-navy-tint"
+            onClick={() => player.skip(-10)}
+            aria-label="Back 10 seconds"
+            className="p-2 shrink-0 flex items-center justify-center text-ink"
           >
-            {playbackRate}x
+            <SkipIcon direction="back" />
           </button>
-          {showRates && (
-            <div className="absolute bottom-full mb-1 right-0 bg-surface border border-line rounded shadow-sm overflow-hidden">
-              {PLAYBACK_RATES.map((rate) => (
-                <button
-                  key={rate}
-                  type="button"
-                  onClick={() => {
-                    player.setPlaybackRate(rate);
-                    setShowRates(false);
-                  }}
-                  className={`block w-full px-3 py-1.5 text-xs font-mono text-left hover:bg-navy-tint ${
-                    rate === playbackRate ? 'text-ink font-medium' : 'text-muted'
-                  }`}
-                >
-                  {rate}x
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          <button
+            type="button"
+            onClick={() => player.skip(10)}
+            aria-label="Forward 10 seconds"
+            className="p-2 shrink-0 flex items-center justify-center text-ink"
+          >
+            <SkipIcon direction="forward" />
+          </button>
 
-        <button
-          type="button"
-          onClick={cycleMode}
-          aria-label={`Playback mode: ${MODE_LABEL[mode]}`}
-          className="font-mono text-[10px] text-muted w-12 h-8 shrink-0 rounded hover:bg-navy-tint hidden xs:block"
-        >
-          {MODE_LABEL[mode]}
-        </button>
+          <button
+            type="button"
+            onClick={cycleMode}
+            aria-label={`Playback mode: ${MODE_LABEL[mode]}`}
+            className="font-mono text-[10px] text-muted p-2 shrink-0 rounded hover:bg-navy-tint hidden xs:block"
+          >
+            {MODE_LABEL[mode]}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -137,8 +139,8 @@ export function MiniPlayer() {
 
 function PlayIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" className="ml-0.5">
-      <path d="M6 4L20 12L6 20V4Z" fill="#F7F7F5" />
+    <svg width="14" height="14" viewBox="0 0 24 24">
+      <path d="M7 4L19 12L7 20V4Z" fill="#F7F7F5" />
     </svg>
   );
 }

@@ -38,8 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
       <body>
         <PlayerProvider>
-          {/* pb-16 keeps the fixed MiniPlayer from covering page content */}
-          <div className="pb-16">{children}</div>
+          {/* pb-24 keeps the fixed MiniPlayer from covering page content, with
+              extra clearance now that the title can wrap to two lines */}
+          <div className="pb-24">{children}</div>
           <MiniPlayer />
         </PlayerProvider>
       </body>

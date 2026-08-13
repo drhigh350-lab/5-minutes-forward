@@ -36,9 +36,12 @@ export function Hero({ latestEpisode }: HeroProps) {
             label="Continue listening"
             durationSeconds={lastPlayed.durationSeconds}
             href={`/${lastPlayed.slug}?autoplay=1`}
+            size={64}
           />
-          <div>
-            <p className="font-display text-lg text-ink leading-snug">{lastPlayed.title}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-lg text-ink leading-snug whitespace-normal break-words">
+              {lastPlayed.title}
+            </p>
           </div>
         </div>
 

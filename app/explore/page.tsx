@@ -36,17 +36,15 @@ export default async function ExplorePage() {
             {episodes.length > 0 && (
               <section className="pb-8">
                 <p className="eyebrow mb-3">Episodes</p>
-                <ul className="divide-y divide-line">
+                <ul>
                   {episodes.map((ep) => (
-                    <li key={ep.slug}>
-                      <Link href={`/${ep.slug}`} className="flex items-center justify-between py-4 group">
-                        <span className="flex items-baseline gap-3 min-w-0">
-                          <span className="font-mono text-xs text-muted shrink-0">Day {ep.episodeNumber}</span>
-                          <span className="text-ink group-hover:underline decoration-line underline-offset-4 truncate">
-                            {ep.title}
-                          </span>
+                    <li key={ep.slug} className="border-b border-line last:border-b-0">
+                      <Link href={`/${ep.slug}`} className="flex items-start py-3.5 group">
+                        <span className="font-mono text-xs text-muted shrink-0 w-20 pt-0.5">Day {ep.episodeNumber}</span>
+                        <span className="flex-1 min-w-0 pr-3 text-ink group-hover:underline decoration-line underline-offset-4 whitespace-normal break-words">
+                          {ep.title}
                         </span>
-                        <span className="font-mono text-xs text-muted shrink-0 ml-3">
+                        <span className="font-mono text-xs text-muted shrink-0 w-12 text-right pt-0.5">
                           {formatDuration(ep.durationSeconds)}
                         </span>
                       </Link>
@@ -59,14 +57,14 @@ export default async function ExplorePage() {
             {groupings.length > 0 && (
               <section className="pb-8">
                 <p className="eyebrow mb-3">Series &amp; Collections</p>
-                <ul className="divide-y divide-line">
+                <ul>
                   {groupings.map((g) => (
-                    <li key={g.slug}>
-                      <Link href={`/series/${g.slug}`} className="flex items-center justify-between py-4 group">
-                        <span className="text-ink group-hover:underline decoration-line underline-offset-4 truncate">
+                    <li key={g.slug} className="border-b border-line last:border-b-0">
+                      <Link href={`/series/${g.slug}`} className="flex items-start py-3.5 group">
+                        <span className="flex-1 min-w-0 pr-3 text-ink group-hover:underline decoration-line underline-offset-4 whitespace-normal break-words">
                           {g.title}
                         </span>
-                        <span className="font-mono text-xs text-muted shrink-0 ml-3">{g.episodeCount} eps</span>
+                        <span className="font-mono text-xs text-muted shrink-0 pt-0.5">{g.episodeCount} eps</span>
                       </Link>
                     </li>
                   ))}

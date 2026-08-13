@@ -110,6 +110,18 @@ if (error) {
   return episode.id as string;
 }
 
+/**
+ * Hard delete — permitted for both draft and published episodes. All
+ * foreign keys referencing `episode` (episode_grouping, episode_topic,
+ * feedback, playback_event, share_event, episode_stats) are ON DELETE
+ * CASCADE, so this cleans up every dependent row in one statement.
+ */
+export async function deleteEpisode(id: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('episode').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function updateEpisode(id: string, input: EpisodeInput): Promise<void> {
   const supabase = createAdminClient();
 
