@@ -14,14 +14,14 @@ export function PrevNextNav({ prev, next }: PrevNextProps) {
     <nav className="flex items-center justify-between py-4 text-sm">
       {prev ? (
         <Link href={`/${prev.slug}`} className="text-muted hover:text-ink">
-          ← Day {prev.episodeNumber}
+          ← Episode {prev.episodeNumber}
         </Link>
       ) : (
         <span />
       )}
       {next ? (
         <Link href={`/${next.slug}`} className="text-muted hover:text-ink">
-          Day {next.episodeNumber} →
+          Episode {next.episodeNumber} →
         </Link>
       ) : (
         <span />

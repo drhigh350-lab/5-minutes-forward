@@ -20,9 +20,29 @@ export async function generateMetadata({ params }: EpisodePageProps) {
   const { slug } = await params;
   const episode = await getEpisodeBySlug(slug);
   if (!episode) return {};
+
+  const title = `${episode.title} — 5 Minutes Forward`;
+  const description = episode.description || episode.quote || undefined;
+  const url = `https://forward.techmedng.com/${episode.slug}`;
+  const image = episode.artworkUrl || '/logo.png';
+
   return {
-    title: `${episode.title} — 5 Minutes Forward`,
-    description: episode.description,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: '5 Minutes Forward',
+      images: [{ url: image, width: 800, height: 800, alt: episode.title }],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
   };
 }
 
@@ -50,7 +70,7 @@ export default async function EpisodePage({ params, searchParams }: EpisodePageP
         <section className="pt-4 pb-6">
           <div className="flex items-start justify-between gap-3 mb-2">
             <p className="font-mono text-xs tracking-[0.14em] uppercase text-gold">
-              Day {episode.episodeNumber}
+              Episode {episode.episodeNumber}
             </p>
             <ShareButton
               title={episode.title}

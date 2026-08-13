@@ -16,8 +16,8 @@ export function RecentEpisodes({ episodes }: { episodes: EpisodeTeaser[] }) {
         {episodes.map((ep) => (
           <li key={ep.slug} className="border-b border-line last:border-b-0">
             <Link href={`/${ep.slug}`} className="flex items-start py-3.5 group">
-              <span className="font-mono text-xs text-muted shrink-0 w-20 pt-0.5">
-                Day {ep.episodeNumber}
+              <span className="font-mono text-xs text-muted shrink-0 w-24 pt-0.5">
+                Episode {ep.episodeNumber}
               </span>
               <span className="flex-1 min-w-0 pr-3 text-ink group-hover:underline decoration-line underline-offset-4 whitespace-normal break-words">
                 {ep.title}

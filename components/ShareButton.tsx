@@ -32,7 +32,10 @@ export function ShareButton({ title, url, quote, variant = 'icon', target }: Sha
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ title, text, url });
+        // `url` is already embedded in `text` above — passing both
+        // causes some share targets (WhatsApp included) to append the
+        // link a second time, since they don't dedupe text vs. url.
+        await navigator.share({ title, text });
       } catch {
         // User cancelled the share sheet — not an error, do nothing.
       }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const MENU_LINKS = [
   { href: '/', label: 'Home' },
@@ -16,7 +17,8 @@ export function Header() {
 
   return (
     <header className="relative flex items-center justify-between py-4">
-      <Link href="/" className="font-display text-lg text-ink">
+      <Link href="/" className="flex items-center gap-2 font-display text-lg text-ink">
+        <Image src="/logo.png" alt="" width={28} height={28} className="rounded-full" priority />
         5 Minutes Forward
       </Link>
       <button

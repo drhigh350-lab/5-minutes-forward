@@ -16,9 +16,30 @@ export async function generateMetadata({ params }: GroupingPageProps): Promise<M
   const { slug } = await params;
   const result = await getGroupingBySlug(slug);
   if (!result) return {};
+
+  const { grouping } = result;
+  const title = `${grouping.title} — 5 Minutes Forward`;
+  const description = grouping.description || undefined;
+  const url = `https://forward.techmedng.com/series/${grouping.slug}`;
+  const image = grouping.artworkUrl || '/logo.png';
+
   return {
-    title: `${result.grouping.title} — 5 Minutes Forward`,
-    description: result.grouping.description,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: '5 Minutes Forward',
+      images: [{ url: image, width: 800, height: 800, alt: grouping.title }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
   };
 }
 

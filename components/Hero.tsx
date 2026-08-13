@@ -27,7 +27,7 @@ export function Hero({ latestEpisode }: HeroProps) {
         <p className="eyebrow mb-3">👋 Welcome back</p>
         <h1 className="font-display text-2xl text-ink mb-1">Continue where you stopped</h1>
         <p className="text-muted mb-6">
-          Day {lastPlayed.episodeNumber} —{' '}
+          Episode {lastPlayed.episodeNumber} —{' '}
           {formatRemaining(lastPlayed.positionSeconds, lastPlayed.durationSeconds)}
         </p>
 
@@ -72,7 +72,7 @@ export function Hero({ latestEpisode }: HeroProps) {
 
       <div className="rounded-lg border border-line bg-surface p-5">
         <p className="font-mono text-xs tracking-[0.14em] uppercase text-gold mb-2">
-          Day {latestEpisode.episodeNumber}
+          Episode {latestEpisode.episodeNumber}
         </p>
         <h2 className="font-display text-xl text-ink leading-snug mb-3">{latestEpisode.title}</h2>
         <p className="text-muted italic mb-5">&ldquo;{latestEpisode.quote}&rdquo;</p>

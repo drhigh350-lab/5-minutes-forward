@@ -27,10 +27,29 @@ const plexMono = IBM_Plex_Mono({
   weight: ['400', '500'],
 });
 
+const SITE_URL = 'https://forward.techmedng.com';
+const SITE_TITLE = '5 Minutes Forward';
+const SITE_DESCRIPTION =
+  'Short audio episodes to help you think better, learn better, and live better. An initiative of TECHMED.';
+
 export const metadata: Metadata = {
-  title: '5 Minutes Forward',
-  description:
-    'Short audio episodes to help you think better, learn better, and live better. An initiative of TECHMED.',
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_TITLE,
+    images: [{ url: '/logo.png', width: 800, height: 800, alt: SITE_TITLE }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

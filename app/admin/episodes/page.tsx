@@ -64,7 +64,7 @@ export default function EpisodesListPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs font-mono uppercase text-muted border-b border-line">
-              <th className="pb-2">Day</th>
+              <th className="pb-2">Episode</th>
               <th className="pb-2">Title</th>
               <th className="pb-2">Status</th>
               <th className="pb-2">Featured</th>

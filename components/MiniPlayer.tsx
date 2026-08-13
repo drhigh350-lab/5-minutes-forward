@@ -65,7 +65,7 @@ export function MiniPlayer() {
 
         <Link href={`/${episode.slug}`} className="min-w-0 flex-1">
           <p className="font-mono text-[10px] tracking-wide uppercase text-muted">
-            Day {episode.episodeNumber}
+            Episode {episode.episodeNumber}
           </p>
           <p className="text-sm text-ink leading-tight truncate sm:whitespace-normal sm:break-words sm:line-clamp-2">
             {isError ? 'Couldn\u2019t play \u2014 tap to retry' : episode.title}
