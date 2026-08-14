@@ -12,6 +12,11 @@ interface ShareButtonProps {
   target?: { episodeId: string } | { groupingId: string };
 }
 
+/** Appends ?src=<value> so the destination page's traffic-source tracking (EpisodePlayer's resolveTrafficSource) can attribute the visit to this exact channel, regardless of whether the app strips referrer headers. */
+function withSource(url: string, source: string): string {
+  return `${url}${url.includes('?') ? '&' : '?'}src=${source}`;
+}
+
 /**
  * Sits just below Play in the CTA hierarchy — visible but never louder
  * than the play control (product spec §X — Share). Prefers the native
@@ -25,9 +30,11 @@ export function ShareButton({ title, url, quote, variant = 'icon', label = 'Shar
   const [copied, setCopied] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  const text = quote
-    ? `🎧 5 MINUTES FORWARD\n${title}\n\n"${quote}"\n\nListen here: ${url}`
-    : `🎧 5 MINUTES FORWARD\n${title}\n\n${url}`;
+  function textFor(taggedUrl: string) {
+    return quote
+      ? `🎧 5 MINUTES FORWARD\n${title}\n\n"${quote}"\n\nListen here: ${taggedUrl}`
+      : `🎧 5 MINUTES FORWARD\n${title}\n\n${taggedUrl}`;
+  }
 
   async function handleShare() {
     // Logged optimistically on share-sheet/menu open — not all browsers
@@ -40,7 +47,7 @@ export function ShareButton({ title, url, quote, variant = 'icon', label = 'Shar
         // `url` is already embedded in `text` above — passing both
         // causes some share targets (WhatsApp included) to append the
         // link a second time, since they don't dedupe text vs. url.
-        await navigator.share({ title, text });
+        await navigator.share({ title, text: textFor(withSource(url, 'native_share')) });
       } catch {
         // User cancelled the share sheet — not an error, do nothing.
       }
@@ -55,7 +62,7 @@ export function ShareButton({ title, url, quote, variant = 'icon', label = 'Shar
   async function copyLink() {
     setShowMenu(false);
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(textFor(withSource(url, 'copy_link')));
       if (target) logShareEvent(target, 'share_completed');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -70,11 +77,10 @@ export function ShareButton({ title, url, quote, variant = 'icon', label = 'Shar
     window.open(channelUrl, '_blank', 'noopener,noreferrer');
   }
 
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-  const telegramText = quote
-    ? `🎧 5 MINUTES FORWARD\n${title}\n\n"${quote}"`
-    : `🎧 5 MINUTES FORWARD\n${title}`;
-  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(telegramText)}`;
+  const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(textFor(withSource(url, 'whatsapp')))}`;
+  const telegramTaggedUrl = withSource(url, 'telegram');
+  const telegramText = quote ? `🎧 5 MINUTES FORWARD\n${title}\n\n"${quote}"` : `🎧 5 MINUTES FORWARD\n${title}`;
+  const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(telegramTaggedUrl)}&text=${encodeURIComponent(telegramText)}`;
 
   const buttonClassName =
     variant === 'labeled'
@@ -97,14 +103,14 @@ export function ShareButton({ title, url, quote, variant = 'icon', label = 'Shar
         <div className="absolute z-10 top-full mt-1 right-0 bg-surface border border-line rounded shadow-sm overflow-hidden w-40">
           <button
             type="button"
-            onClick={() => openChannel(whatsappUrl)}
+            onClick={() => openChannel(whatsappShareUrl)}
             className="block w-full px-3 py-2 text-sm text-left text-ink hover:bg-navy-tint"
           >
             WhatsApp
           </button>
           <button
             type="button"
-            onClick={() => openChannel(telegramUrl)}
+            onClick={() => openChannel(telegramShareUrl)}
             className="block w-full px-3 py-2 text-sm text-left text-ink hover:bg-navy-tint"
           >
             Telegram

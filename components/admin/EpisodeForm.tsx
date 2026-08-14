@@ -466,7 +466,11 @@ function readAudioDuration(file: File): Promise<number> {
 /** Post-publish screen (spec §10.2) — the WhatsApp copy-paste workflow. */
 function PublishConfirmation({ episodeNumber, slug, title }: { episodeNumber: number; slug: string; title: string }) {
   const url = `https://forward.techmedng.com/${slug}`;
-  const template = `🎧 5 MINUTES FORWARD — EPISODE ${episodeNumber}\n${title}\n\nListen here:\n${url}\n\nIf this speaks to you, share it with someone who needs it.`;
+  // Tagged separately from the plain "Copy Episode Link" below so
+  // traffic-source tracking (EpisodePlayer's resolveTrafficSource) can
+  // attribute visits to the daily broadcast specifically.
+  const broadcastUrl = `${url}?src=whatsapp_broadcast`;
+  const template = `🎧 5 MINUTES FORWARD — EPISODE ${episodeNumber}\n${title}\n\nListen here:\n${broadcastUrl}\n\nIf this speaks to you, share it with someone who needs it.`;
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   function copy(key: string, text: string) {

@@ -31,9 +31,23 @@ interface GroupingStat {
   } | null;
 }
 
+interface TrafficSource {
+  source: string;
+  count: number;
+}
+
+interface TopTopic {
+  name: string;
+  playCount: number;
+}
+
 export default function StatsPage() {
   const [episodeStats, setEpisodeStats] = useState<EpisodeStat[]>([]);
   const [groupingStats, setGroupingStats] = useState<GroupingStat[]>([]);
+  const [trafficSources, setTrafficSources] = useState<TrafficSource[]>([]);
+  const [topTopics, setTopTopics] = useState<TopTopic[]>([]);
+  const [repeatVisitRate, setRepeatVisitRate] = useState(0);
+  const [pageVisitCount, setPageVisitCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +56,10 @@ export default function StatsPage() {
       .then((d) => {
         setEpisodeStats(d.episodeStats ?? []);
         setGroupingStats(d.groupingStats ?? []);
+        setTrafficSources(d.trafficSources ?? []);
+        setTopTopics(d.topTopics ?? []);
+        setRepeatVisitRate(d.repeatVisitRate ?? 0);
+        setPageVisitCount(d.pageVisitCount ?? 0);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -55,11 +73,48 @@ export default function StatsPage() {
         Recomputed every 15 minutes by a scheduled job. Numbers may lag real-time activity slightly.
       </p>
 
+      <h2 className="font-display text-lg text-ink mb-3">Discovery (last 30 days)</h2>
+      <div className="flex gap-8 mb-4 text-sm">
+        <div>
+          <div className="font-display text-xl text-ink">{pageVisitCount}</div>
+          <div className="text-muted">Page visits</div>
+        </div>
+        <div>
+          <div className="font-display text-xl text-ink">{(repeatVisitRate * 100).toFixed(0)}%</div>
+          <div className="text-muted">Repeat-visitor rate</div>
+        </div>
+      </div>
+      {trafficSources.length === 0 ? (
+        <p className="text-sm text-muted mb-8">No visits recorded yet.</p>
+      ) : (
+        <table className="w-full text-sm mb-8">
+          <thead>
+            <tr className="text-left text-xs font-mono uppercase text-muted border-b border-line">
+              <th className="pb-2">Source</th>
+              <th className="pb-2">Visits</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trafficSources.map((row) => (
+              <tr key={row.source} className="border-b border-line">
+                <td className="py-2 text-ink">{row.source}</td>
+                <td className="py-2">{row.count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="text-xs text-muted mb-8">
+        &ldquo;Source&rdquo; is <code>?src=</code> on links shared via the share menu or the WhatsApp promo
+        template, falling back to referrer hostname or &ldquo;direct&rdquo;. Many apps (WhatsApp&rsquo;s mobile
+        client especially) strip the referrer header, so untagged share-driven traffic under-counts here.
+      </p>
+
       <h2 className="font-display text-lg text-ink mb-3">Episodes</h2>
       <StatsTable
         rows={episodeStats}
         idKey="episode_id"
-        type="episode"  
+        type="episode"
       />
 
       <h2 className="font-display text-lg text-ink mt-8 mb-3">Groupings</h2>
@@ -68,6 +123,28 @@ export default function StatsPage() {
         idKey="grouping_id"
         type="grouping"
       />
+
+      <h2 className="font-display text-lg text-ink mt-8 mb-3">Most Engaged Topics</h2>
+      {topTopics.length === 0 ? (
+        <p className="text-sm text-muted">No data yet.</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs font-mono uppercase text-muted border-b border-line">
+              <th className="pb-2">Topic</th>
+              <th className="pb-2">Total plays</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topTopics.map((row) => (
+              <tr key={row.name} className="border-b border-line">
+                <td className="py-2 text-ink">{row.name}</td>
+                <td className="py-2">{row.playCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

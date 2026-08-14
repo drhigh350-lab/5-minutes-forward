@@ -315,9 +315,15 @@ export async function listFeedbackAdmin(episodeId?: string) {
 /** Admin-side raw stats read (spec §10.5) — the ONLY place these numbers are ever exposed; never via a public route. */
 export async function getStatsOverviewAdmin() {
   const supabase = createAdminClient();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: episodeStats, error: eError }, { data: groupingStats, error: gError }] =
-    await Promise.all([
+  const [
+    { data: episodeStats, error: eError },
+    { data: groupingStats, error: gError },
+    { data: visitEvents, error: vError },
+    { data: allEpisodeStats, error: aError },
+    { data: topicLinks, error: tError },
+  ] = await Promise.all([
       supabase
         .from('episode_stats')
         .select(`
@@ -354,13 +360,68 @@ export async function getStatsOverviewAdmin() {
         `)
         .order('play_count', { ascending: false })
         .limit(50),
+
+      // Traffic source + repeat-visit rate: window to 30 days so this
+      // stays cheap to pull and aggregate in JS as the table grows,
+      // rather than needing a dedicated aggregation query/view.
+      supabase
+        .from('playback_event')
+        .select('event_type, source')
+        .in('event_type', ['page_visit', 'return_visit'])
+        .gte('created_at', thirtyDaysAgo),
+
+      // Unlimited (unlike the display query above) so the topic tally
+      // below isn't silently missing episodes outside the top 50.
+      supabase.from('episode_stats').select('episode_id, play_count'),
+
+      supabase.from('episode_topic').select('episode_id, topic_id, topic:topic_id(name)'),
     ]);
 
   if (eError) throw eError;
   if (gError) throw gError;
+  if (vError) throw vError;
+  if (aError) throw aError;
+  if (tError) throw tError;
+
+  let pageVisitCount = 0;
+  let returnVisitCount = 0;
+  const sourceCounts = new Map<string, number>();
+  for (const row of visitEvents ?? []) {
+    if (row.event_type === 'page_visit') {
+      pageVisitCount++;
+      const source = (row.source as string | null) || 'direct';
+      sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1);
+    } else if (row.event_type === 'return_visit') {
+      returnVisitCount++;
+    }
+  }
+  const trafficSources = [...sourceCounts.entries()]
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const playCountByEpisode = new Map<string, number>(
+    (allEpisodeStats ?? []).map((row) => [row.episode_id as string, row.play_count as number])
+  );
+  const topicPlayCounts = new Map<string, { name: string; playCount: number }>();
+  for (const link of topicLinks ?? []) {
+    const playCount = playCountByEpisode.get(link.episode_id as string) ?? 0;
+    const topicId = link.topic_id as string;
+    // Supabase's untyped client infers embedded relationships as
+    // arrays regardless of cardinality without generated DB types —
+    // episode_topic.topic_id -> topic.id is actually many-to-one.
+    const topicRelation = link.topic as { name: string } | { name: string }[] | null;
+    const topicName = (Array.isArray(topicRelation) ? topicRelation[0]?.name : topicRelation?.name) ?? 'Unknown topic';
+    const existing = topicPlayCounts.get(topicId);
+    topicPlayCounts.set(topicId, { name: topicName, playCount: (existing?.playCount ?? 0) + playCount });
+  }
+  const topTopics = [...topicPlayCounts.values()].sort((a, b) => b.playCount - a.playCount).slice(0, 10);
 
   return {
     episodeStats: episodeStats ?? [],
     groupingStats: groupingStats ?? [],
+    trafficSources,
+    repeatVisitRate: pageVisitCount > 0 ? returnVisitCount / pageVisitCount : 0,
+    pageVisitCount,
+    topTopics,
   };
 }

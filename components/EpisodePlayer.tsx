@@ -43,7 +43,7 @@ export function EpisodePlayer({ episode, autoplay = false }: EpisodePlayerProps)
   useEffect(() => {
     if (hasLoggedVisit.current) return;
     hasLoggedVisit.current = true;
-    logPlaybackEvent(episode.id, 'page_visit', 0);
+    logPlaybackEvent(episode.id, 'page_visit', 0, resolveTrafficSource());
     if (getPlayedEpisodeIds().size > 0) {
       logPlaybackEvent(episode.id, 'return_visit', 0);
     }
@@ -160,4 +160,31 @@ export function EpisodePlayer({ episode, autoplay = false }: EpisodePlayerProps)
       </div>
     </div>
   );
+}
+
+/**
+ * Traffic source for the page_visit event. Our own share links (see
+ * ShareButton) append ?src=whatsapp/telegram/etc. — that's the
+ * primary, reliable signal, since it survives regardless of referrer
+ * policy. document.referrer is the fallback for organic traffic (a
+ * Google search result, a link pasted elsewhere), but many apps —
+ * WhatsApp's mobile client in particular — strip the referrer header
+ * entirely for privacy, so it under-counts share-driven traffic that
+ * isn't carrying a ?src= tag.
+ */
+function resolveTrafficSource(): string {
+  if (typeof window === 'undefined') return 'unknown';
+
+  const tagged = new URLSearchParams(window.location.search).get('src');
+  if (tagged) return tagged;
+
+  if (document.referrer) {
+    try {
+      return new URL(document.referrer).hostname;
+    } catch {
+      return 'direct';
+    }
+  }
+
+  return 'direct';
 }

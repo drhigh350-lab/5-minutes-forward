@@ -29,13 +29,17 @@ export type ShareEventType = 'share_initiated' | 'share_completed';
  * Fires a PlaybackEvent (spec §7/§8) — a real insert now, allowed by the
  * "public insert playback_event" RLS policy already on the table (anon
  * can INSERT but never SELECT/UPDATE/DELETE — verified directly against
- * the live schema). Aggregation into episode_stats/grouping_stats still
- * happens on a separate scheduled job (not yet built — see README).
+ * the live schema). Aggregation into episode_stats/grouping_stats runs
+ * on a pg_cron job every 15 minutes (see refresh_content_stats()).
+ *
+ * `source` is only meaningful (and only ever passed) on 'page_visit' —
+ * see resolveTrafficSource() in EpisodePlayer.tsx for how it's derived.
  */
 export function logPlaybackEvent(
   episodeId: string,
   eventType: PlaybackEventType,
-  positionSeconds: number
+  positionSeconds: number,
+  source?: string | null
 ) {
   const supabase = createPublicClient();
   supabase
@@ -45,6 +49,7 @@ export function logPlaybackEvent(
       event_type: eventType,
       position_seconds: Math.round(positionSeconds),
       session_id: getSessionId(),
+      source: source ?? null,
     })
     .then(({ error }) => {
       if (error && process.env.NODE_ENV !== 'production') {
