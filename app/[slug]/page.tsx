@@ -1,7 +1,13 @@
 import { notFound } from 'next/navigation';
-import { getEpisodeBySlug, getSequentialNeighbors, getGroupingsForEpisode, getSiteSettings } from '@/lib/data';
+import {
+  getEpisodeBySlug,
+  getSequentialNeighbors,
+  getGroupingsForEpisode,
+  getSiteSettings,
+  getRelatedEpisodes,
+} from '@/lib/data';
 import { EpisodePlayer } from '@/components/EpisodePlayer';
-import { PrevNextNav, GroupingPointer, ExploreMoreCard } from '@/components/EpisodePageSections';
+import { PrevNextNav, GroupingPointer, ExploreMoreCard, Transcript, RelatedEpisodes } from '@/components/EpisodePageSections';
 import { FeedbackBlock } from '@/components/FeedbackBlock';
 import { ShareButton } from '@/components/ShareButton';
 import { WhatsAppFollow } from '@/components/LowerSections';
@@ -59,10 +65,11 @@ export default async function EpisodePage({ params, searchParams }: EpisodePageP
   const episode = await getEpisodeBySlug(slug);
   if (!episode) notFound();
 
-  const [{ prev, next }, groupings, siteSettings] = await Promise.all([
+  const [{ prev, next }, groupings, siteSettings, relatedEpisodes] = await Promise.all([
     getSequentialNeighbors(episode),
     getGroupingsForEpisode(episode.id),
     getSiteSettings(),
+    getRelatedEpisodes(episode.id),
   ]);
 
   const episodeUrl = `${SITE_URL}/${episode.slug}`;
@@ -115,9 +122,13 @@ export default async function EpisodePage({ params, searchParams }: EpisodePageP
           <EpisodePlayer episode={episode} autoplay={autoplay === '1'} />
         </section>
 
+        {episode.transcript && <Transcript text={episode.transcript} />}
+
         <PrevNextNav prev={prev} next={next} />
 
         {primaryGrouping && <GroupingPointer grouping={primaryGrouping} />}
+
+        <RelatedEpisodes episodes={relatedEpisodes} />
 
         <FeedbackBlock episodeId={episode.id} />
 

@@ -48,6 +48,13 @@ export async function GET() {
       const pubDate = new Date(ep.published_at ?? ep.created_at).toUTCString();
       const description = ep.description || ep.quote || '';
       const image = ep.artwork_url || PODCAST_IMAGE;
+      // Points at the episode webpage itself (where the transcript is
+      // rendered, collapsed, in Transcript — see EpisodePageSections.tsx)
+      // rather than a dedicated transcript endpoint, which isn't worth
+      // building separately right now.
+      const transcriptTag = ep.transcript
+        ? `\n      <podcast:transcript url="${escapeXml(url)}" type="text/html" />`
+        : '';
 
       return `
     <item>
@@ -62,13 +69,13 @@ export async function GET() {
       <itunes:episodeType>full</itunes:episodeType>
       <itunes:duration>${ep.duration_seconds ?? 0}</itunes:duration>
       <itunes:explicit>false</itunes:explicit>
-      <itunes:image href="${escapeXml(image)}" />
+      <itunes:image href="${escapeXml(image)}" />${transcriptTag}
     </item>`;
     })
     .join('');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:podcast="https://podcastindex.org/namespace/1.0">
   <channel>
     <title>${escapeXml(PODCAST_TITLE)}</title>
     <link>${SITE_URL}</link>

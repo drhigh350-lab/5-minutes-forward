@@ -184,6 +184,85 @@ export async function getGroupingsForEpisode(episodeId: string): Promise<Groupin
   return (groupingRows ?? []).map((row, i) => mapGrouping(row as GroupingRow, counts[i]));
 }
 
+export interface RelatedEpisode {
+  episodeNumber: number;
+  title: string;
+  slug: string;
+  durationSeconds: number;
+}
+
+/**
+ * Deterministic "related episodes" — other published episodes sharing
+ * at least one topic or grouping with the given episode, ranked by how
+ * much overlap they share (more shared topics/groupings first), newest
+ * as a tiebreaker. Deliberately not a recommendation engine: at this
+ * catalog size, tallying overlap in JS after two small queries is
+ * simpler and more explainable than a multi-join SQL aggregate.
+ */
+export async function getRelatedEpisodes(episodeId: string, limit = 4): Promise<RelatedEpisode[]> {
+  const supabase = createPublicClient();
+
+  const [{ data: myTopics, error: topicsError }, { data: myGroupings, error: groupingsError }] = await Promise.all([
+    supabase.from('episode_topic').select('topic_id').eq('episode_id', episodeId),
+    supabase.from('episode_grouping').select('grouping_id').eq('episode_id', episodeId),
+  ]);
+  if (topicsError) throw topicsError;
+  if (groupingsError) throw groupingsError;
+
+  const topicIds = (myTopics ?? []).map((t) => t.topic_id as string);
+  const groupingIds = (myGroupings ?? []).map((g) => g.grouping_id as string);
+  if (topicIds.length === 0 && groupingIds.length === 0) return [];
+
+  const scores = new Map<string, number>();
+  const tally = (rows: { episode_id: string }[] | null) => {
+    for (const row of rows ?? []) {
+      scores.set(row.episode_id, (scores.get(row.episode_id) ?? 0) + 1);
+    }
+  };
+
+  if (topicIds.length > 0) {
+    const { data, error } = await supabase
+      .from('episode_topic')
+      .select('episode_id')
+      .in('topic_id', topicIds)
+      .neq('episode_id', episodeId);
+    if (error) throw error;
+    tally(data as { episode_id: string }[] | null);
+  }
+
+  if (groupingIds.length > 0) {
+    const { data, error } = await supabase
+      .from('episode_grouping')
+      .select('episode_id')
+      .in('grouping_id', groupingIds)
+      .neq('episode_id', episodeId);
+    if (error) throw error;
+    tally(data as { episode_id: string }[] | null);
+  }
+
+  if (scores.size === 0) return [];
+
+  const { data: episodeRows, error: episodesError } = await supabase
+    .from('episode')
+    .select('id, episode_number, title, slug, duration_seconds')
+    .in('id', [...scores.keys()]);
+  if (episodesError) throw episodesError;
+
+  return (episodeRows ?? [])
+    .sort(
+      (a, b) =>
+        (scores.get(b.id as string) ?? 0) - (scores.get(a.id as string) ?? 0) ||
+        (b.episode_number as number) - (a.episode_number as number)
+    )
+    .slice(0, limit)
+    .map((row) => ({
+      episodeNumber: row.episode_number as number,
+      title: row.title as string,
+      slug: row.slug as string,
+      durationSeconds: (row.duration_seconds as number) ?? 0,
+    }));
+}
+
 /**
  * Autoplay / "what's next" resolution (spec §4) — three-tier fallback,
  * now against real data:

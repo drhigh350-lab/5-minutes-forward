@@ -327,6 +327,16 @@ if (!putRes.ok) {
         <input value={form.artworkUrl} onChange={(e) => updateField('artworkUrl', e.target.value)} className="input" />
       </Field>
 
+      <Field label="Transcript (optional)">
+        <textarea
+          value={form.transcript}
+          onChange={(e) => updateField('transcript', e.target.value)}
+          rows={8}
+          placeholder="Paste or write the episode transcript — shown collapsed on the episode page and helps with search."
+          className="input resize-y"
+        />
+      </Field>
+
       <Field label="Series / Collections">
         <div className="flex flex-col gap-2 border border-line rounded p-3">
           {groupingOptions.length === 0 && <p className="text-xs text-muted">No groupings yet — create one first.</p>}

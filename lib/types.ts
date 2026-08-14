@@ -17,6 +17,7 @@ export interface Episode {
   publishedAt: string; // ISO date
   status: 'draft' | 'published';
   featured: boolean;
+  transcript?: string;
 }
 
 export interface Grouping {

@@ -14,6 +14,7 @@ export function mapEpisode(row: EpisodeRow): Episode {
     publishedAt: row.published_at ?? row.created_at,
     status: row.status,
     featured: row.featured,
+    transcript: row.transcript ?? undefined,
   };
 }
 
