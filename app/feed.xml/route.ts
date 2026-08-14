@@ -13,10 +13,11 @@ const PODCAST_TITLE = '5 Minutes Forward';
 const PODCAST_DESCRIPTION =
   'Short audio episodes to help you think better, learn better, and live better. An initiative of TECHMED.';
 const PODCAST_AUTHOR = 'TECHMED';
-// TODO: confirm this is a real, monitored inbox before submitting to
-// Apple Podcasts Connect — it's required at submission time even
-// though it isn't required for the feed itself to be valid.
-const PODCAST_OWNER_EMAIL = 'hello@techmedng.com';
+// TODO: confirm this actually receives mail (Resend is send-only by
+// default — a domain set up there doesn't automatically have an inbox
+// behind it unless MX/inbound routing is separately configured) before
+// submitting to Apple Podcasts Connect. Swap to a fallback address if not.
+const PODCAST_OWNER_EMAIL = 'teams@techmedng.com';
 const PODCAST_IMAGE = `${SITE_URL}/logo.png`;
 const PODCAST_LANGUAGE = 'en';
 const PODCAST_CATEGORY = 'Education';

@@ -18,14 +18,18 @@ Autodiscovery is wired up site-wide via `app/layout.tsx`'s `alternates.types` (`
 - **`<guid>`** uses the episode's Supabase `id` (UUID) with `isPermaLink="false"` — stable even if the slug or title changes later.
 - **File size / MIME type**: captured automatically at upload time in the admin CMS (`EpisodeForm.tsx`, alongside the duration auto-detection that already existed) and stored on the episode row (`audio_file_size_bytes`, `audio_content_type`). Episodes uploaded before this existed don't have a stored size (the feed falls back to `length="0"`, which podcast apps generally tolerate) and don't have a stored content type (the feed guesses one from the file extension via `guessAudioContentType()` in `lib/audio.ts`).
 
-## ⚠️ Audio format — read before submitting to Apple Podcasts
+## ⚠️ Audio format
 
-Most existing episode audio files are **`.opus`** (WhatsApp voice notes), not MP3 — 17 of 23 episodes at last check, with 2 more as `.m4a` and zero as `.mp3`. The feed correctly reports each file's real type, so the feed itself is technically valid — but Apple Podcasts specifically has inconsistent/poor support for Opus, and may reject episodes or fail to play them even with a syntactically correct feed. Spotify tends to be more tolerant. If Apple Podcasts submission becomes a priority, plan on either:
+**New episodes**: WhatsApp voice notes are `.opus`, and confirmed via Apple's own documentation, Apple Podcasts only accepts **MP3 or M4A/AAC** — Opus isn't supported at all, independent of the feed being valid. Before uploading a new episode's audio to the CMS, convert the downloaded `.opus` file to M4A (AAC, mono, ~64kbps — matches Opus's small file size instead of ballooning it) using a free browser-based converter such as [cdkm.com/opus-to-m4a](https://cdkm.com/opus-to-m4a) (converts locally in the browser, nothing uploaded to a server) or [FreeConvert](https://www.freeconvert.com/opus-to-m4a). This is a manual step for now; if it becomes a bottleneck at daily-episode volume, it could be automated into the upload flow later.
 
-- asking whoever forwards episode audio to export as MP3/M4A instead of relying on the raw WhatsApp voice note, or
-- adding a transcoding step before upload (not built — out of scope for this phase).
+**Existing episodes**: `scripts/transcode-legacy-audio.mjs` bulk-converts every already-published episode whose audio isn't already MP3/M4A, and updates the corresponding `episode` row (`audio_object_key`, `audio_content_type`, `audio_file_size_bytes`) to match. Run it once:
 
-This isn't something the feed code can paper over; it's a property of the actual audio files.
+```
+node --env-file=.env.local scripts/transcode-legacy-audio.mjs --dry-run   # preview what would change
+node --env-file=.env.local scripts/transcode-legacy-audio.mjs             # actually convert
+```
+
+Requires `ffmpeg` installed locally (free — `brew install ffmpeg` / `apt install ffmpeg` / `choco install ffmpeg`) and a `.env.local` with real Supabase + R2 credentials. Original audio files are kept in R2 by default (not deleted) so this is safely reversible; once you've confirmed the converted episodes play correctly everywhere, re-run with `--delete-originals` to clean up the old files. See the script's header comment for full details.
 
 ## Validating the feed
 
