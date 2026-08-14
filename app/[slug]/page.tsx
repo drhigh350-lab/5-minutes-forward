@@ -104,22 +104,24 @@ export default async function EpisodePage({ params, searchParams }: EpisodePageP
       <main>
         {/* Above the fold: title, quote, play — nothing else (spec §3) */}
         <section className="pt-4 pb-6">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <p className="font-mono text-xs tracking-[0.14em] uppercase text-gold">
-              Episode {episode.episodeNumber}
-            </p>
-            <ShareButton
-              title={episode.title}
-              url={episodeUrl}
-              quote={episode.quote}
-              variant="icon"
-              target={{ episodeId: episode.id }}
-            />
-          </div>
+          <p className="font-mono text-xs tracking-[0.14em] uppercase text-gold mb-2">
+            Episode {episode.episodeNumber}
+          </p>
           <h1 className="font-display text-2xl text-ink leading-snug mb-3">{episode.title}</h1>
           <p className="text-muted italic mb-6">&ldquo;{episode.quote}&rdquo;</p>
 
           <EpisodePlayer episode={episode} autoplay={autoplay === '1'} />
+
+          <div className="mt-4">
+            <ShareButton
+              title={episode.title}
+              url={episodeUrl}
+              quote={episode.quote}
+              variant="labeled"
+              label="Share this episode"
+              target={{ episodeId: episode.id }}
+            />
+          </div>
         </section>
 
         {episode.transcript && <Transcript text={episode.transcript} />}

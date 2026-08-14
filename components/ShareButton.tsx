@@ -8,24 +8,29 @@ interface ShareButtonProps {
   url: string;
   quote?: string;
   variant?: 'icon' | 'labeled';
+  label?: string;
   target?: { episodeId: string } | { groupingId: string };
 }
 
 /**
  * Sits just below Play in the CTA hierarchy — visible but never louder
- * than the play control (product spec §X — Share). Uses the native share
- * sheet so it lands naturally in WhatsApp DMs, groups, and Status without
- * custom per-platform buttons.
+ * than the play control (product spec §X — Share). Prefers the native
+ * share sheet (WhatsApp/Telegram/etc. show up automatically on mobile)
+ * but most desktop browsers don't support it at all — for those, opens
+ * an explicit WhatsApp/Telegram/Copy Link menu instead of silently
+ * falling back to clipboard-only, since WhatsApp and Telegram are the
+ * actual primary distribution channels here, not an edge case.
  */
-export function ShareButton({ title, url, quote, variant = 'icon', target }: ShareButtonProps) {
+export function ShareButton({ title, url, quote, variant = 'icon', label = 'Share', target }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const text = quote
     ? `🎧 5 MINUTES FORWARD\n${title}\n\n"${quote}"\n\nListen here: ${url}`
     : `🎧 5 MINUTES FORWARD\n${title}\n\n${url}`;
 
   async function handleShare() {
-    // Logged optimistically on share-sheet open — not all browsers
+    // Logged optimistically on share-sheet/menu open — not all browsers
     // confirm completion via the Web Share API's promise, so
     // share_initiated is the reliable baseline event (spec §X).
     if (target) logShareEvent(target, 'share_initiated');
@@ -42,40 +47,78 @@ export function ShareButton({ title, url, quote, variant = 'icon', target }: Sha
       return;
     }
 
-    // Fallback for browsers without the Web Share API.
+    // No native share sheet (most desktop browsers) — offer explicit
+    // channel choices instead.
+    setShowMenu((s) => !s);
+  }
+
+  async function copyLink() {
+    setShowMenu(false);
     try {
       await navigator.clipboard.writeText(text);
+      if (target) logShareEvent(target, 'share_completed');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard also unavailable — silently no-op; icon-only fallback
-      // UI has nothing more to offer without a modal, which we're
-      // avoiding for this minimal MVP surface.
+      // Clipboard unavailable — silently no-op.
     }
   }
 
-  if (variant === 'labeled') {
-    return (
+  function openChannel(channelUrl: string) {
+    setShowMenu(false);
+    if (target) logShareEvent(target, 'share_completed');
+    window.open(channelUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  const telegramText = quote
+    ? `🎧 5 MINUTES FORWARD\n${title}\n\n"${quote}"`
+    : `🎧 5 MINUTES FORWARD\n${title}`;
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(telegramText)}`;
+
+  const buttonClassName =
+    variant === 'labeled'
+      ? 'inline-flex items-center gap-2 text-sm font-medium text-ink border border-line rounded-full px-4 py-2 hover:border-ink transition-colors'
+      : 'w-9 h-9 flex items-center justify-center rounded-full hover:bg-navy-tint transition-colors shrink-0';
+
+  return (
+    <div className="relative inline-block">
       <button
         type="button"
         onClick={handleShare}
-        className="inline-flex items-center gap-2 text-sm font-medium text-ink border border-line rounded-full px-4 py-2 hover:border-ink transition-colors"
+        aria-label={variant === 'icon' ? (copied ? 'Link copied' : label) : undefined}
+        className={buttonClassName}
       >
         <ShareIcon />
-        {copied ? 'Link copied' : 'Share'}
+        {variant === 'labeled' && (copied ? 'Link copied' : label)}
       </button>
-    );
-  }
 
-  return (
-    <button
-      type="button"
-      onClick={handleShare}
-      aria-label={copied ? 'Link copied' : 'Share'}
-      className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-navy-tint transition-colors shrink-0"
-    >
-      <ShareIcon />
-    </button>
+      {showMenu && (
+        <div className="absolute z-10 top-full mt-1 right-0 bg-surface border border-line rounded shadow-sm overflow-hidden w-40">
+          <button
+            type="button"
+            onClick={() => openChannel(whatsappUrl)}
+            className="block w-full px-3 py-2 text-sm text-left text-ink hover:bg-navy-tint"
+          >
+            WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={() => openChannel(telegramUrl)}
+            className="block w-full px-3 py-2 text-sm text-left text-ink hover:bg-navy-tint"
+          >
+            Telegram
+          </button>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="block w-full px-3 py-2 text-sm text-left text-ink hover:bg-navy-tint"
+          >
+            {copied ? 'Copied ✓' : 'Copy Link'}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
