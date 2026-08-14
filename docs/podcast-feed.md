@@ -31,12 +31,20 @@ node --env-file=.env.local scripts/transcode-legacy-audio.mjs             # actu
 
 Requires `ffmpeg` installed locally (free — `brew install ffmpeg` / `apt install ffmpeg` / `choco install ffmpeg` / `pkg install ffmpeg` on Termux) and a `.env.local` with real Supabase + R2 credentials. Original audio files are kept in R2 by default (not deleted) so this is safely reversible; once you've confirmed the converted episodes play correctly everywhere, re-run with `--delete-originals` to clean up the old files. See the script's header comment for full details.
 
-**If converted episodes sound distorted/crackly**: this happened on the first real run — voice recordings from a phone mic are often already close to peak level, and re-encoding without headroom management can clip on hard consonants. Fixed by adding a peak limiter (`alimiter`) and `+faststart` to the ffmpeg step. Since a normal run only touches episodes whose audio isn't already `.mp3`/`.m4a`, already-converted (but bad-sounding) episodes won't be picked up again automatically — use `--redo` instead, which finds episodes currently on `.m4a` whose original `.opus`/`.ogg` is still sitting in R2 (kept by default, per above), re-transcodes with the corrected settings, and overwrites the existing `.m4a` in place:
+**If converted episodes sound distorted/crackly**: this happened on the first real run — voice recordings from a phone mic are often already close to peak level, and re-encoding without headroom management can clip on hard consonants. A peak limiter (`alimiter`) and `+faststart` were added to the ffmpeg step to fix this going forward. Since a normal run only touches episodes whose audio isn't already `.mp3`/`.m4a`, already-converted (but bad-sounding) episodes won't be picked up again automatically — two options:
 
-```
-node --env-file=.env.local scripts/transcode-legacy-audio.mjs --redo --dry-run
-node --env-file=.env.local scripts/transcode-legacy-audio.mjs --redo
-```
+- **`--redo`**: re-transcodes with the corrected ffmpeg settings and overwrites the existing `.m4a` in place.
+  ```
+  node --env-file=.env.local scripts/transcode-legacy-audio.mjs --redo --dry-run
+  node --env-file=.env.local scripts/transcode-legacy-audio.mjs --redo
+  ```
+- **`--revert`**: undoes the conversion entirely, pointing each episode back at its original `.opus`/`.ogg` file. Pure database update — no ffmpeg, no file transfer, near-instant, since the originals were never deleted. This is what was actually used the first time the crackling turned out to be too distracting to leave live while debugging — audio quality on the site is the priority; Apple/Spotify format compliance can wait for a properly re-verified `--redo` pass.
+  ```
+  node --env-file=.env.local scripts/transcode-legacy-audio.mjs --revert --dry-run
+  node --env-file=.env.local scripts/transcode-legacy-audio.mjs --revert
+  ```
+
+Both find episodes currently on `.m4a` whose original `.opus`/`.ogg` sibling object still exists in R2 (kept by default, per above).
 
 ## Validating the feed
 

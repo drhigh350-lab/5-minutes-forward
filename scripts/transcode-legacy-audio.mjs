@@ -12,7 +12,8 @@
  * Prerequisites:
  *   1. ffmpeg installed and on PATH (brew install ffmpeg / apt install
  *      ffmpeg / choco install ffmpeg / pkg install ffmpeg on Termux —
- *      free, one-time).
+ *      free, one-time). Not needed for --revert, which does no
+ *      transcoding at all.
  *   2. .env.local populated with real values for: NEXT_PUBLIC_SUPABASE_URL,
  *      SUPABASE_SERVICE_ROLE_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
  *      R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME.
@@ -22,15 +23,18 @@
  *   node --env-file=.env.local scripts/transcode-legacy-audio.mjs
  *   node --env-file=.env.local scripts/transcode-legacy-audio.mjs --delete-originals
  *
- *   # Re-transcode episodes that were already converted to .m4a but
- *   # came out distorted (e.g. the first run's ffmpeg settings clipped
- *   # — see the alimiter/faststart flags below). Re-downloads each
- *   # episode's original .opus (still in R2 since originals are kept
- *   # by default) and overwrites the existing .m4a in place.
+ *   # Re-transcode episodes already converted to .m4a but that came out
+ *   # distorted (clipping — see the alimiter/faststart flags below).
  *   node --env-file=.env.local scripts/transcode-legacy-audio.mjs --redo --dry-run
  *   node --env-file=.env.local scripts/transcode-legacy-audio.mjs --redo
  *
- * What a normal (non---redo) run does per episode that needs it:
+ *   # Undo entirely: point episodes back at their original .opus/.ogg
+ *   # file (still in R2, untouched) instead of the converted .m4a.
+ *   # Pure database update — no ffmpeg, no file transfer, near-instant.
+ *   node --env-file=.env.local scripts/transcode-legacy-audio.mjs --revert --dry-run
+ *   node --env-file=.env.local scripts/transcode-legacy-audio.mjs --revert
+ *
+ * What a normal (non-flag) run does per episode that needs it:
  *   1. Downloads the current audio object from R2.
  *   2. Transcodes to mono AAC/M4A at TARGET_BITRATE via ffmpeg (keeps
  *      file size close to the Opus original instead of the much larger
@@ -41,11 +45,12 @@
  *   4. Updates the episode row: audio_object_key, audio_content_type,
  *      audio_file_size_bytes.
  *   5. Leaves the original object in R2 untouched unless
- *      --delete-originals is passed (default: keep, for safety/rollback).
+ *      --delete-originals is passed (default: keep, for safety/rollback
+ *      — this is exactly what makes --redo and --revert possible later).
  *
  * Already-compatible episodes (.mp3 / .m4a) are skipped automatically
- * in normal mode. --redo mode only touches episodes whose original
- * .opus/.ogg sibling object still exists in R2.
+ * in normal mode. --redo and --revert only touch episodes whose
+ * original .opus/.ogg sibling object still exists in R2.
  */
 
 import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
@@ -61,10 +66,18 @@ const execFileAsync = promisify(execFile);
 const TARGET_BITRATE = '64k'; // mono AAC — plenty for spoken word, keeps files small
 const COMPATIBLE_EXTENSIONS = new Set(['mp3', 'm4a']);
 const REDO_SOURCE_EXTENSIONS = ['opus', 'ogg'];
+const EXTENSION_CONTENT_TYPES = {
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  opus: 'audio/opus',
+  ogg: 'audio/ogg',
+  wav: 'audio/wav',
+};
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const DELETE_ORIGINALS = process.argv.includes('--delete-originals');
-const REDO = process.argv.includes('--redo');
+const MODE = process.argv.includes('--revert') ? 'revert' : process.argv.includes('--redo') ? 'redo' : 'convert';
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -100,12 +113,15 @@ function withExtension(key, ext) {
   return key.replace(/\.[^./]+$/, `.${ext}`);
 }
 
-async function objectExists(key) {
+function guessContentType(key) {
+  return EXTENSION_CONTENT_TYPES[extensionOf(key)] || 'audio/mpeg';
+}
+
+async function headObject(key) {
   try {
-    await r2.send(new HeadObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }));
-    return true;
+    return await r2.send(new HeadObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }));
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -127,59 +143,43 @@ async function transcodeToM4a(inputPath, outputPath) {
     '-ac', '1', // mono
     // Peak limiter: voice recordings from a phone mic are often close
     // to 0dB already, and re-encoding through a different codec without
-    // headroom can push transients over full scale, which is heard as
-    // clicks/cracks on hard consonants. Capping true peaks at -95%
-    // fixes that without audibly changing the recording otherwise.
+    // headroom can push transients over full scale, heard as
+    // clicks/cracks on hard consonants. Caps true peaks at -95%.
     '-af', 'alimiter=limit=0.95:attack=5:release=50',
-    // Puts the moov atom at the front so playback can start progressively
-    // instead of needing the whole file (or at least trailing metadata)
-    // fetched first.
+    // Moov atom at the front, for clean progressive playback.
     '-movflags', '+faststart',
     outputPath,
   ]);
 }
 
-/** Finds candidate episodes for a normal run: audio not already MP3/M4A. */
-async function findNeedsConversion() {
-  const { data: episodes, error } = await supabase
-    .from('episode')
-    .select('id, episode_number, title, slug, audio_object_key, audio_content_type')
-    .order('episode_number', { ascending: true });
-  if (error) throw error;
-
-  const candidates = episodes.filter((ep) => !COMPATIBLE_EXTENSIONS.has(extensionOf(ep.audio_object_key)));
-  return { total: episodes.length, candidates };
+/** Candidates for a normal run: audio not already MP3/M4A. */
+async function findNeedsConversion(episodes) {
+  return episodes.filter((ep) => !COMPATIBLE_EXTENSIONS.has(extensionOf(ep.audio_object_key)));
 }
 
 /**
- * Finds candidate episodes for --redo: currently .m4a, but with an
+ * Candidates for --redo/--revert: currently .m4a, but with an
  * .opus/.ogg sibling object still present in R2 (i.e. episodes a
  * previous run already converted, whose original hasn't been deleted).
  */
-async function findRedoCandidates() {
-  const { data: episodes, error } = await supabase
-    .from('episode')
-    .select('id, episode_number, title, slug, audio_object_key, audio_content_type')
-    .order('episode_number', { ascending: true });
-  if (error) throw error;
-
+async function findRecoverable(episodes) {
   const m4aEpisodes = episodes.filter((ep) => extensionOf(ep.audio_object_key) === 'm4a');
   const candidates = [];
 
   for (const ep of m4aEpisodes) {
     for (const ext of REDO_SOURCE_EXTENSIONS) {
       const candidateSourceKey = withExtension(ep.audio_object_key, ext);
-      if (await objectExists(candidateSourceKey)) {
+      if (await headObject(candidateSourceKey)) {
         candidates.push({ ...ep, sourceKey: candidateSourceKey });
         break;
       }
     }
   }
 
-  return { total: episodes.length, candidates };
+  return candidates;
 }
 
-async function processEpisode(ep, { sourceKey, targetKey, deleteSourceAfter }, workDir) {
+async function convertOrRedo(ep, { sourceKey, targetKey, deleteSourceAfter }, workDir) {
   const label = `Episode ${ep.episode_number} — ${ep.title}`;
   console.log(`\n${label}`);
 
@@ -201,21 +201,12 @@ async function processEpisode(ep, { sourceKey, targetKey, deleteSourceAfter }, w
 
     console.log(`  Uploading ${targetKey} (${(outputSize / 1024).toFixed(0)} KB)...`);
     await r2.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: targetKey,
-        Body: outputBytes,
-        ContentType: 'audio/mp4',
-      })
+      new PutObjectCommand({ Bucket: R2_BUCKET_NAME, Key: targetKey, Body: outputBytes, ContentType: 'audio/mp4' })
     );
 
     const { error: updateError } = await supabase
       .from('episode')
-      .update({
-        audio_object_key: targetKey,
-        audio_content_type: 'audio/mp4',
-        audio_file_size_bytes: outputSize,
-      })
+      .update({ audio_object_key: targetKey, audio_content_type: 'audio/mp4', audio_file_size_bytes: outputSize })
       .eq('id', ep.id);
     if (updateError) throw updateError;
 
@@ -235,42 +226,77 @@ async function processEpisode(ep, { sourceKey, targetKey, deleteSourceAfter }, w
   }
 }
 
-async function main() {
-  await checkFfmpegAvailable();
+/** No transcoding, no file transfer — just points the episode back at its original file. */
+async function revert(ep) {
+  const label = `Episode ${ep.episode_number} — ${ep.title}`;
+  console.log(`\n${label}`);
+  try {
+    const head = await headObject(ep.sourceKey);
+    if (!head) throw new Error(`${ep.sourceKey} no longer exists in R2`);
 
-  const { total, candidates } = REDO ? await findRedoCandidates() : await findNeedsConversion();
+    const { error } = await supabase
+      .from('episode')
+      .update({
+        audio_object_key: ep.sourceKey,
+        audio_content_type: guessContentType(ep.sourceKey),
+        audio_file_size_bytes: head.ContentLength ?? null,
+      })
+      .eq('id', ep.id);
+    if (error) throw error;
 
-  if (REDO) {
-    console.log(`${total} episodes total, ${candidates.length} have a recoverable original to redo.`);
-  } else {
-    console.log(`${total} episodes total, ${candidates.length} need transcoding.`);
+    console.log(`  Reverted to ${ep.sourceKey}.`);
+    return true;
+  } catch (err) {
+    console.error(`  FAILED: ${err instanceof Error ? err.message : String(err)}`);
+    return false;
   }
+}
+
+async function main() {
+  if (MODE === 'convert') await checkFfmpegAvailable();
+
+  const { data: episodes, error } = await supabase
+    .from('episode')
+    .select('id, episode_number, title, slug, audio_object_key, audio_content_type')
+    .order('episode_number', { ascending: true });
+  if (error) throw error;
+
+  const candidates = MODE === 'convert' ? await findNeedsConversion(episodes) : await findRecoverable(episodes);
+
+  const verb = MODE === 'revert' ? 'can be reverted' : MODE === 'redo' ? 'have a recoverable original to redo' : 'need transcoding';
+  console.log(`${episodes.length} episodes total, ${candidates.length} ${verb}.`);
 
   if (DRY_RUN) {
     for (const ep of candidates) {
-      const source = REDO ? ep.sourceKey : ep.audio_object_key;
+      const source = MODE === 'convert' ? ep.audio_object_key : ep.sourceKey;
       console.log(`  [dry-run] Episode ${ep.episode_number} — ${ep.title} (${source})`);
     }
-    console.log('\nDry run only — nothing was changed. Re-run without --dry-run to actually transcode.');
+    console.log(`\nDry run only — nothing was changed. Re-run without --dry-run to actually ${MODE === 'revert' ? 'revert' : 'transcode'}.`);
     return;
   }
 
-  const workDir = await mkdtemp(join(tmpdir(), '5mf-transcode-'));
   let succeeded = 0;
   let failed = 0;
 
-  for (const ep of candidates) {
-    const sourceKey = REDO ? ep.sourceKey : ep.audio_object_key;
-    const targetKey = REDO ? ep.audio_object_key : withExtension(ep.audio_object_key, 'm4a');
-    const ok = await processEpisode(ep, { sourceKey, targetKey, deleteSourceAfter: DELETE_ORIGINALS }, workDir);
-    if (ok) succeeded++;
-    else failed++;
+  if (MODE === 'revert') {
+    for (const ep of candidates) {
+      if (await revert(ep)) succeeded++;
+      else failed++;
+    }
+  } else {
+    const workDir = await mkdtemp(join(tmpdir(), '5mf-transcode-'));
+    for (const ep of candidates) {
+      const sourceKey = MODE === 'redo' ? ep.sourceKey : ep.audio_object_key;
+      const targetKey = MODE === 'redo' ? ep.audio_object_key : withExtension(ep.audio_object_key, 'm4a');
+      const ok = await convertOrRedo(ep, { sourceKey, targetKey, deleteSourceAfter: DELETE_ORIGINALS }, workDir);
+      if (ok) succeeded++;
+      else failed++;
+    }
+    await rm(workDir, { recursive: true, force: true });
   }
 
-  await rm(workDir, { recursive: true, force: true });
-
-  console.log(`\nDone: ${succeeded} converted, ${failed} failed, ${total - candidates.length} skipped.`);
-  if (!DELETE_ORIGINALS && succeeded > 0) {
+  console.log(`\nDone: ${succeeded} succeeded, ${failed} failed, ${episodes.length - candidates.length} skipped.`);
+  if (MODE === 'convert' && !DELETE_ORIGINALS && succeeded > 0) {
     console.log('Original files were kept in R2 for safety. Once you\'ve confirmed the new episodes play correctly everywhere, re-run with --delete-originals to clean them up.');
   }
 }
