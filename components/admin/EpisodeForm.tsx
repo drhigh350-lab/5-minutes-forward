@@ -27,6 +27,9 @@ interface EpisodeFormProps {
     durationSeconds: number;
     status: 'draft' | 'published';
     featured: boolean;
+    transcript: string;
+    audioFileSizeBytes: number | null;
+    audioContentType: string | null;
     groupingIds: { groupingId: string; position: number | null }[];
     topicIds: string[];
   };
@@ -43,6 +46,9 @@ const emptyForm = {
   durationSeconds: 0,
   status: 'draft' as 'draft' | 'published',
   featured: false,
+  transcript: '',
+  audioFileSizeBytes: null as number | null,
+  audioContentType: null as string | null,
 };
 
 export function EpisodeForm({ mode, episodeId, initial }: EpisodeFormProps) {
@@ -135,7 +141,13 @@ if (!putRes.ok) {
     }`
   );
 }
-      setForm((f) => ({ ...f, audioObjectKey: objectKey, durationSeconds: Math.round(duration) }));
+      setForm((f) => ({
+        ...f,
+        audioObjectKey: objectKey,
+        durationSeconds: Math.round(duration),
+        audioFileSizeBytes: file.size,
+        audioContentType: file.type || null,
+      }));
       setUploadedFileName(file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -201,6 +213,9 @@ if (!putRes.ok) {
       durationSeconds: form.durationSeconds || null,
       status: publishNow ? 'published' : 'draft',
       featured: form.featured,
+      transcript: form.transcript || null,
+      audioFileSizeBytes: form.audioFileSizeBytes,
+      audioContentType: form.audioContentType,
       groupingIds: Object.entries(groupingIds).map(([groupingId, position]) => ({
         groupingId,
         position: position === false ? null : position,

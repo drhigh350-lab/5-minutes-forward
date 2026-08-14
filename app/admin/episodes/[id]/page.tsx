@@ -28,6 +28,9 @@ export default async function EditEpisodePage({ params }: { params: Promise<{ id
           durationSeconds: episode.duration_seconds ?? 0,
           status: episode.status,
           featured: episode.featured,
+          transcript: episode.transcript ?? '',
+          audioFileSizeBytes: episode.audio_file_size_bytes,
+          audioContentType: episode.audio_content_type,
           groupingIds,
           topicIds,
         }}

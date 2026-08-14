@@ -19,6 +19,9 @@ export interface EpisodeInput {
   status: 'draft' | 'published';
   featured: boolean;
   publishedAt?: string | null;
+  transcript?: string | null;
+  audioFileSizeBytes?: number | null;
+  audioContentType?: string | null;
   groupingIds: { groupingId: string; position?: number | null }[];
   topicIds: string[];
 }
@@ -97,6 +100,9 @@ export async function createEpisode(input: EpisodeInput): Promise<string> {
       status: input.status,
       featured: input.featured,
       published_at: input.publishedAt ?? (input.status === 'published' ? new Date().toISOString() : null),
+      transcript: input.transcript ?? null,
+      audio_file_size_bytes: input.audioFileSizeBytes ?? null,
+      audio_content_type: input.audioContentType ?? null,
     })
     .select('id')
     .single();
@@ -125,6 +131,25 @@ export async function deleteEpisode(id: string): Promise<void> {
 export async function updateEpisode(id: string, input: EpisodeInput): Promise<void> {
   const supabase = createAdminClient();
 
+  // published_at resolution mirrors createEpisode's: an explicit value
+  // wins, a draft always clears it, and publishing preserves whatever
+  // was already there (so re-saving an already-published episode
+  // doesn't wipe its original publish date) or sets it to now() the
+  // first time an episode transitions into 'published'. Previously this
+  // unconditionally wrote input.publishedAt ?? null — since the admin
+  // form never actually sends publishedAt, every edit of a published
+  // episode was silently nulling it out.
+  let publishedAt = input.publishedAt ?? null;
+  if (!input.publishedAt && input.status === 'published') {
+    const { data: existing, error: fetchError } = await supabase
+      .from('episode')
+      .select('published_at')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw fetchError;
+    publishedAt = existing?.published_at ?? new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from('episode')
     .update({
@@ -138,7 +163,10 @@ export async function updateEpisode(id: string, input: EpisodeInput): Promise<vo
       duration_seconds: input.durationSeconds ?? null,
       status: input.status,
       featured: input.featured,
-      published_at: input.publishedAt ?? null,
+      published_at: publishedAt,
+      transcript: input.transcript ?? null,
+      audio_file_size_bytes: input.audioFileSizeBytes ?? null,
+      audio_content_type: input.audioContentType ?? null,
     })
     .eq('id', id);
   if (error) throw error;

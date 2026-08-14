@@ -52,7 +52,7 @@ export default function StatsPage() {
     <div>
       <h1 className="font-display text-2xl text-ink mb-2">Analytics</h1>
       <p className="text-sm text-muted mb-6">
-        Populated by the scheduled aggregation job (not yet built — see README). Rows will be all-zero until then.
+        Recomputed every 15 minutes by a scheduled job. Numbers may lag real-time activity slightly.
       </p>
 
       <h2 className="font-display text-lg text-ink mb-3">Episodes</h2>

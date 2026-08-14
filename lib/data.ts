@@ -337,6 +337,27 @@ export async function getAllEpisodes() {
   }));
 }
 
+/**
+ * Full published episode rows for the RSS feed (app/feed.xml) — needs
+ * fields the lighter list views don't (audio key, artwork, publish
+ * date, transcript, audio metadata), so it's a separate query rather
+ * than overloading getAllEpisodes(). Explicit status filter is
+ * belt-and-suspenders on top of the "public read published episodes"
+ * RLS policy the anon client already enforces.
+ */
+export async function getAllEpisodesForFeed(): Promise<EpisodeRow[]> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('episode')
+    .select('*')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('episode_number', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as EpisodeRow[];
+}
+
 /** All series + collections for /series, newest/display_order first. */
 export async function getAllGroupings(): Promise<Grouping[]> {
   const supabase = createPublicClient();

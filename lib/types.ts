@@ -78,6 +78,12 @@ export interface EpisodeRow {
   featured: boolean;
   created_at: string;
   updated_at: string;
+  // Podcast-readiness fields (RSS feed) — nullable/optional since most
+  // existing episodes predate them; the feed falls back sensibly when
+  // any of these are missing rather than excluding the episode.
+  transcript: string | null;
+  audio_file_size_bytes: number | null;
+  audio_content_type: string | null;
 }
 
 export interface GroupingRow {

@@ -64,6 +64,7 @@ export function Footer() {
         <Link href="/series" className="hover:text-ink">Series</Link>
         <Link href="/collective" className="hover:text-ink">Forward Collective</Link>
         <Link href="/feedback" className="hover:text-ink">Feedback</Link>
+        <a href="/feed.xml" className="hover:text-ink">RSS</a>
       </nav>
       <p className="text-xs text-muted">
         Powered by TECHMED · © {new Date().getFullYear()} TECHMED
